@@ -18,7 +18,10 @@ jobs:
           node-version: 22
       - name: Expand project snapshot
         run: |
-          base64 -d .bootstrap/payload.b64 > /tmp/palette-paper.tar.gz
+          cat .bootstrap/part-*.b64 > /tmp/palette-paper.b64
+          test "$(wc -c < /tmp/palette-paper.b64)" -eq 13148
+          base64 -d /tmp/palette-paper.b64 > /tmp/palette-paper.tar.gz
+          echo "d2051d3f871370654dcd49128b82dbcc21b846f290026d90933fa3ddb5aeb519  /tmp/palette-paper.tar.gz" | sha256sum -c -
           tar -xzf /tmp/palette-paper.tar.gz -C .
           rm -rf .bootstrap .github/workflows/bootstrap.yml
       - name: Install dependencies
