@@ -1,0 +1,3 @@
+# Palette & Paper
+
+Repository initialization.
