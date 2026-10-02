@@ -3,6 +3,7 @@ import type { AppConfig } from '../config/appConfig';
 import type { ApplicationStateStore } from '../app/applicationState';
 import type { InitializationReport } from '../app/initializeApplication';
 import { DebugPanel } from '../debug/DebugPanel';
+import { InputLab } from './InputLab';
 
 interface DevelopmentShellProps {
   readonly config: AppConfig;
@@ -16,7 +17,7 @@ export function DevelopmentShell({ config, state, initialization }: DevelopmentS
   return (
     <main className="development-shell">
       <section className="status-card" aria-labelledby="project-title">
-        <p className="eyebrow">Technical foundation</p>
+        <p className="eyebrow">Pointer / stylus technology spike</p>
         <h1 id="project-title">{config.title}</h1>
         <dl>
           <div><dt>Build</dt><dd>{config.buildId}</dd></div>
@@ -24,6 +25,9 @@ export function DevelopmentShell({ config, state, initialization }: DevelopmentS
           <div><dt>Application state</dt><dd>{applicationState.mode}</dd></div>
         </dl>
       </section>
+
+      <InputLab />
+
       <DebugPanel config={config} state={applicationState} initialization={initialization} />
     </main>
   );

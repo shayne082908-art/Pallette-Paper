@@ -15,18 +15,38 @@ body {
   min-height: 100vh;
 }
 
+button,
+input {
+  font: inherit;
+}
+
+button {
+  padding: 8px 12px;
+  border: 1px solid currentColor;
+  background: #fff;
+  cursor: pointer;
+}
+
 .development-shell {
-  width: min(720px, calc(100% - 32px));
-  margin: 64px auto;
+  width: min(1480px, calc(100% - 32px));
+  margin: 32px auto 64px;
   display: grid;
   gap: 16px;
 }
 
 .status-card,
-.debug-panel {
+.debug-panel,
+.diagnostic-card,
+.exercise-card,
+.pressure-card,
+.capture-summary {
   border: 1px solid currentColor;
-  padding: 24px;
-  background: color-mix(in srgb, Canvas 92%, transparent);
+  padding: 20px;
+  background: #fffef9;
+}
+
+.status-card {
+  max-width: 720px;
 }
 
 .eyebrow {
@@ -37,7 +57,8 @@ body {
 }
 
 h1,
-h2 {
+h2,
+h3 {
   margin-top: 0;
 }
 
@@ -46,6 +67,10 @@ h1 {
 }
 
 h2 {
+  margin-bottom: 8px;
+}
+
+h3 {
   font-size: 1rem;
 }
 
@@ -66,4 +91,145 @@ dt {
 
 dd {
   margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.input-lab {
+  display: grid;
+  gap: 16px;
+}
+
+.lab-header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.lab-copy {
+  max-width: 760px;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.lab-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lab-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(320px, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.input-surface {
+  position: relative;
+  min-height: 62vh;
+  overflow: hidden;
+  border: 1px solid #353535;
+  background:
+    linear-gradient(#00000008 1px, transparent 1px),
+    linear-gradient(90deg, #00000008 1px, transparent 1px),
+    #f0eee8;
+  background-size: 24px 24px;
+  touch-action: none;
+  user-select: none;
+  overscroll-behavior: contain;
+  cursor: crosshair;
+}
+
+.trace-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.surface-label {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  padding: 5px 7px;
+  background: #ffffffcc;
+  pointer-events: none;
+  font-size: 0.78rem;
+}
+
+.pressure-card,
+.capture-summary {
+  margin-top: 16px;
+}
+
+.pressure-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 10px;
+}
+
+.pressure-track {
+  height: 18px;
+  border: 1px solid #353535;
+  background: #ece9df;
+  overflow: hidden;
+}
+
+.pressure-fill {
+  width: 100%;
+  height: 100%;
+  background: #252525;
+  transform-origin: left center;
+  transition: none;
+}
+
+.lab-sidebar {
+  display: grid;
+  gap: 16px;
+}
+
+.diagnostic-grid div {
+  grid-template-columns: minmax(170px, 1.3fr) 1fr;
+  border-top: 1px solid #dedbd2;
+}
+
+.diagnostic-grid div:first-child {
+  border-top: 0;
+}
+
+.exercise-card ol {
+  margin: 0;
+  padding-left: 22px;
+  display: grid;
+  gap: 9px;
+  line-height: 1.4;
+}
+
+.debug-panel {
+  max-width: 720px;
+}
+
+@media (max-width: 980px) {
+  .lab-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .lab-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .input-surface {
+    min-height: 55vh;
+  }
 }
