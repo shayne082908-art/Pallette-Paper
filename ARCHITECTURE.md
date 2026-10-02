@@ -9,59 +9,74 @@
 - `src/config/`: centralized application title, build identifier, persistence schema version, and debug-mode configuration.
 - `src/app/`: bootstrap, broad application state, and initialization orchestration.
 - `src/core/`: small cross-boundary primitives currently limited to the unsubscribe type.
-- `src/input/`: pointer normalization, concrete browser Pointer Event capture, rolling diagnostics, and short in-memory capture summaries.
+- `src/input/`: pointer normalization, concrete browser Pointer Event capture, rolling/capture diagnostics, guided validation definitions, capability-state calculation, and report generation.
 - `src/rendering/`: the general imperative rendering contract plus the diagnostic raw-trace renderer used by Input Lab.
 - `src/persistence/`: versioned small-state persistence and the browser `localStorage` driver.
-- `src/ui/`: ordinary React UI, including the Build 02 Input Lab diagnostics.
+- `src/ui/`: ordinary React UI, including the Input Lab and guided Build 02B test controls/results.
 - `src/debug/`: development-only application diagnostics.
 
-The `game`, `audio`, and `content` areas remain absent because no current implementation belongs in them. Empty architectural placeholders are avoided.
+No gameplay, brush-engine, document, or artwork-storage module is implemented.
 
 ## Application state
 
-`ApplicationStateStore` owns the broad modes `booting`, `ready`, and `error`. It exposes explicit transitions and subscriptions without a state-machine dependency. These are application lifecycle modes, not gameplay states.
+`ApplicationStateStore` owns the broad modes `booting`, `ready`, and `error`. These remain application lifecycle modes rather than gameplay states.
 
 ## React and high-frequency systems
 
-React owns the diagnostic controls and display only. `BrowserPointerInputSource` listens to browser Pointer Events imperatively and emits normalized samples directly to consumers. The diagnostic renderer and measurement/recording services consume those samples without waiting for a React render.
+React owns controls, instructions, questions, and throttled diagnostic/result display. It does not process one state update per pointer sample.
 
-Input Lab copies the latest sample and rolling measurements into React state on a throttled animation-frame loop. Incoming samples never cause one React state update per pointer sample.
+The high-frequency path remains imperative:
+
+browser Pointer Events -> `BrowserPointerInputSource` -> normalized `PointerSample` -> `InputRateMeter` / `InputCaptureRecorder` + `DiagnosticTraceRenderer`.
+
+The React view copies the latest sample and rolling rates on a throttled animation-frame loop.
 
 ## Input boundary
 
-`PointerSample` contains pointer ID, local position, high-resolution timestamp, device type, pressure, tangential pressure, tilt, twist, contact dimensions, altitude/azimuth angles, button state, primary/contact state, conservative eraser state, and sample origin.
+`PointerSample` contains pointer ID, local position, timestamp, device type, pressure, tangential pressure, tilt, twist, contact dimensions, altitude/azimuth angles, button state, primary/contact state, conservative eraser state, and sample origin.
 
-`BrowserPointerInputSource`:
-- handles pointer down/move/up/cancel, capture loss, enter, and leave;
-- captures the active pointer on pointer down so contact can continue across surface bounds;
-- uses `getCoalescedEvents()` for pointer moves when the browser returns coalesced samples;
-- emits coalesced samples individually and in browser-provided order;
-- detects `pointerrawupdate` API availability for diagnostics but does not currently subscribe to that parallel stream, avoiding duplicate sample accounting.
+`BrowserPointerInputSource` handles down/move/up/cancel, pointer capture/loss, and enter/leave. `touch-action: none` remains scoped to the diagnostic surface.
 
-`touch-action: none` is scoped to the Input Lab surface only.
+### Coalesced-event batching
+
+For pointer moves, `getCoalescedEvents()` is used when available. Build 02B merges browser-provided coalesced events with the dispatched parent event, sorts them chronologically with stable source ordering for timestamp ties, and removes exact endpoint duplicates using pointer ID + timestamp + client X/Y.
+
+This preserves a distinct newer parent endpoint instead of replacing it with only older coalesced samples. It is browser-sample preservation only; there is no geometric resampling.
 
 ## Input diagnostics
 
-`InputRateMeter` keeps short rolling timestamp windows for browser events, normalized samples, coalesced samples, and processed samples.
+`InputRateMeter` maintains short rolling timestamp windows for browser events, normalized samples, coalesced samples, and processed samples.
 
-`InputCaptureRecorder` retains aggregate measurements only for an active short capture. It does not keep a permanent raw event log. The summary includes duration, pointer types, event/sample counts, sample rate, pressure and tilt ranges, twist change, and eraser observation.
+`InputCaptureRecorder` retains aggregate state for one short capture. It counts the browser/normalized stream, but pressure, tilt, twist, eraser, and sequential gap metrics are derived from contact samples so hover/up defaults do not masquerade as stylus capability.
+
+It calculates maximum time and spatial gaps only between sequential contact samples for the same pointer. Contact lifts reset that sequence.
+
+No raw sample log is permanently stored.
+
+## Guided validation
+
+`src/input/stylusValidation.ts` defines the eight human exercises, neutral capability states, cross-test aggregate measurements, and the copyable text report.
+
+The UI automatically clears the diagnostic trace when an exercise begins, records one in-memory summary per completed exercise, permits retry/previous/restart, and permits the eraser exercise to be skipped.
+
+Human visual judgments remain explicit user answers rather than automated quality scores.
 
 ## Rendering boundary
 
-`RenderingService` remains the general imperative canvas boundary.
+`RenderingService` remains the general imperative canvas boundary. `DiagnosticTraceRenderer` draws the raw line and optional sample points with direct pressure-to-width mapping.
 
-`DiagnosticTraceRenderer` is deliberately instrumentation, not a brush engine. It draws raw normalized contact samples as a dark line with a direct pressure-to-width mapping and can draw individual sample points on a separate overlay canvas. It performs no smoothing, stabilization, custom pressure curve, resampling, texture, or paint simulation.
+There is no smoothing, stabilization, prediction, custom resampling, brush simulation, or paint behavior.
 
-## Persistence boundary
+## Privacy and persistence
 
-`VersionedPersistence` stores versioned JSON envelopes through a small `StorageDriver` interface. `BrowserLocalStorageDriver` is the current browser-local driver. Missing records are a normal result, invalid data is reported safely, and schema mismatches are explicit. Build 02 does not persist Input Lab recordings.
+The guided test keeps results in browser memory only. Report copy uses the browser clipboard when available with an in-document fallback. Report download creates a local text Blob.
+
+No stylus samples, drawings, hardware information, or reports are sent to an application server. No analytics or tracking are present.
+
+`VersionedPersistence` remains limited to small application state and is not used for stylus-test data.
 
 ## Dependency direction
 
 Browser entrypoint -> application bootstrap -> configuration/state/persistence -> React shell.
 
-Input Lab UI owns the browser surface lifecycle, but the high-frequency flow is:
-
-browser Pointer Events -> `BrowserPointerInputSource` -> normalized `PointerSample` -> diagnostic metrics/recorder + imperative trace renderer.
-
-The input and rendering modules do not depend on React. Persistence does not depend on application or UI modules.
+Input and rendering modules do not depend on React. Validation/report logic depends on input-domain types, not UI components. Persistence does not depend on application or UI modules.

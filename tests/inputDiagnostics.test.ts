@@ -61,7 +61,7 @@ describe('InputRateMeter', () => {
 });
 
 describe('InputCaptureRecorder', () => {
-  it('summarizes a short diagnostic capture without retaining a raw log', () => {
+  it('summarizes aggregate measurements including contact gaps', () => {
     const recorder = new InputCaptureRecorder();
     recorder.start(1000);
     recorder.recordBrowserEvent(activity(1050, 1));
@@ -78,11 +78,12 @@ describe('InputCaptureRecorder', () => {
       tiltY: 5,
       twist: 10,
       buttons: 1,
+      isContact: true,
     }));
     recorder.recordSample(normalizePointerSample({
       pointerId: 9,
-      x: 3,
-      y: 4,
+      x: 4,
+      y: 6,
       timestamp: 1100,
       pointerType: 'pen',
       pressure: 0.9,
@@ -92,6 +93,7 @@ describe('InputCaptureRecorder', () => {
       button: 5,
       buttons: 32,
       origin: 'coalesced',
+      isContact: true,
     }));
 
     const summary = recorder.stop(2000);
@@ -103,11 +105,76 @@ describe('InputCaptureRecorder', () => {
       normalizedSamples: 2,
       coalescedSamples: 1,
       averageSampleRate: 2,
+      averageCoalescedSampleRate: 1,
+      maximumTimeGapMs: 50,
+      maximumSpatialGapPx: 5,
       pressureRange: [0.1, 0.9],
+      pressureVariation: 0.8,
       tiltXRange: [-20, 30],
       tiltYRange: [5, 25],
       twistChanged: true,
       eraserObserved: true,
+    });
+  });
+
+  it('does not bridge gap measurements across contact lifts', () => {
+    const recorder = new InputCaptureRecorder();
+    recorder.start(0);
+
+    recorder.recordSample(normalizePointerSample({
+      pointerId: 1,
+      x: 0,
+      y: 0,
+      timestamp: 10,
+      pointerType: 'mouse',
+      buttons: 1,
+      isContact: true,
+    }));
+    recorder.recordSample(normalizePointerSample({
+      pointerId: 1,
+      x: 0,
+      y: 0,
+      timestamp: 20,
+      pointerType: 'mouse',
+      buttons: 0,
+      isContact: false,
+    }));
+    recorder.recordSample(normalizePointerSample({
+      pointerId: 1,
+      x: 100,
+      y: 100,
+      timestamp: 1000,
+      pointerType: 'mouse',
+      buttons: 1,
+      isContact: true,
+    }));
+
+    const summary = recorder.stop(1100);
+
+    expect(summary?.maximumTimeGapMs).toBeNull();
+    expect(summary?.maximumSpatialGapPx).toBeNull();
+  });
+
+  it('returns a valid no-sample summary', () => {
+    const recorder = new InputCaptureRecorder();
+    recorder.start(100);
+
+    expect(recorder.stop(600)).toEqual({
+      durationMs: 500,
+      pointerTypes: [],
+      browserPointerEvents: 0,
+      normalizedSamples: 0,
+      coalescedSamples: 0,
+      averageSampleRate: 0,
+      averageCoalescedSampleRate: 0,
+      maximumTimeGapMs: null,
+      maximumSpatialGapPx: null,
+      pressureRange: null,
+      pressureVariation: null,
+      tiltXRange: null,
+      tiltYRange: null,
+      twistChanged: false,
+      eraserObserved: false,
     });
   });
 });

@@ -86,6 +86,12 @@ export interface PointerSampleBatch {
   readonly usedCoalescedEvents: boolean;
 }
 
+interface OrderedEvent {
+  readonly event: BrowserPointerEventLike;
+  readonly origin: PointerSampleOrigin;
+  readonly sourceOrder: number;
+}
+
 export function normalizePointerSample(source: PointerSampleLike): PointerSample {
   const buttons = integerOr(source.buttons ?? 0, 0);
   const button = integerOr(source.button ?? -1, -1);
@@ -132,11 +138,8 @@ export function unpackPointerEventSamples(
     }
   }
 
-  const useCoalesced = coalesced.length > 0;
-  const sourceEvents = useCoalesced ? coalesced : [event];
-  const origin: PointerSampleOrigin = useCoalesced ? 'coalesced' : 'primary';
-
-  const samples = sourceEvents.map((sourceEvent) =>
+  const orderedEvents = buildOrderedEventSequence(event, coalesced);
+  const samples = orderedEvents.map(({ event: sourceEvent, origin }) =>
     normalizePointerSample({
       pointerId: sourceEvent.pointerId,
       x: sourceEvent.clientX - bounds.left,
@@ -167,9 +170,58 @@ export function unpackPointerEventSamples(
 
   return Object.freeze({
     samples: Object.freeze(samples),
-    coalescedSampleCount: useCoalesced ? samples.length : 0,
-    usedCoalescedEvents: useCoalesced,
+    coalescedSampleCount: orderedEvents.filter((item) => item.origin === 'coalesced').length,
+    usedCoalescedEvents: coalesced.length > 0,
   });
+}
+
+function buildOrderedEventSequence(
+  parent: BrowserPointerEventLike,
+  coalesced: readonly BrowserPointerEventLike[],
+): readonly OrderedEvent[] {
+  if (coalesced.length === 0) {
+    return [{ event: parent, origin: 'primary', sourceOrder: 0 }];
+  }
+
+  const candidates: OrderedEvent[] = [
+    ...coalesced.map((event, index) => ({
+      event,
+      origin: 'coalesced' as const,
+      sourceOrder: index,
+    })),
+    {
+      event: parent,
+      origin: 'primary' as const,
+      sourceOrder: coalesced.length,
+    },
+  ];
+
+  candidates.sort((left, right) => {
+    const timeDifference = left.event.timeStamp - right.event.timeStamp;
+    return timeDifference !== 0 ? timeDifference : left.sourceOrder - right.sourceOrder;
+  });
+
+  const unique: OrderedEvent[] = [];
+  const seenEndpoints = new Set<string>();
+  for (const candidate of candidates) {
+    const key = endpointKey(candidate.event);
+    if (seenEndpoints.has(key)) {
+      continue;
+    }
+    seenEndpoints.add(key);
+    unique.push(candidate);
+  }
+
+  return unique;
+}
+
+function endpointKey(event: BrowserPointerEventLike): string {
+  return [
+    event.pointerId,
+    event.timeStamp,
+    event.clientX,
+    event.clientY,
+  ].join(':');
 }
 
 export function detectStylusEraser(

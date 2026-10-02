@@ -63,11 +63,21 @@ export interface DiagnosticCaptureSummary {
   readonly normalizedSamples: number;
   readonly coalescedSamples: number;
   readonly averageSampleRate: number;
+  readonly averageCoalescedSampleRate: number;
+  readonly maximumTimeGapMs: number | null;
+  readonly maximumSpatialGapPx: number | null;
   readonly pressureRange: readonly [number, number] | null;
+  readonly pressureVariation: number | null;
   readonly tiltXRange: readonly [number, number] | null;
   readonly tiltYRange: readonly [number, number] | null;
   readonly twistChanged: boolean;
   readonly eraserObserved: boolean;
+}
+
+interface ContactPoint {
+  readonly x: number;
+  readonly y: number;
+  readonly timestamp: number;
 }
 
 export class InputCaptureRecorder {
@@ -77,6 +87,7 @@ export class InputCaptureRecorder {
   private normalizedSamples = 0;
   private coalescedSamples = 0;
   private pointerTypes = new Set<PointerDeviceType>();
+  private contactSamples = 0;
   private minPressure = Number.POSITIVE_INFINITY;
   private maxPressure = Number.NEGATIVE_INFINITY;
   private minTiltX = Number.POSITIVE_INFINITY;
@@ -86,6 +97,9 @@ export class InputCaptureRecorder {
   private firstTwist: number | null = null;
   private twistChanged = false;
   private eraserObserved = false;
+  private maximumTimeGapMs: number | null = null;
+  private maximumSpatialGapPx: number | null = null;
+  private readonly previousContactByPointer = new Map<number, ContactPoint>();
 
   isActive(): boolean {
     return this.active;
@@ -98,6 +112,7 @@ export class InputCaptureRecorder {
     this.normalizedSamples = 0;
     this.coalescedSamples = 0;
     this.pointerTypes = new Set<PointerDeviceType>();
+    this.contactSamples = 0;
     this.minPressure = Number.POSITIVE_INFINITY;
     this.maxPressure = Number.NEGATIVE_INFINITY;
     this.minTiltX = Number.POSITIVE_INFINITY;
@@ -107,6 +122,9 @@ export class InputCaptureRecorder {
     this.firstTwist = null;
     this.twistChanged = false;
     this.eraserObserved = false;
+    this.maximumTimeGapMs = null;
+    this.maximumSpatialGapPx = null;
+    this.previousContactByPointer.clear();
   }
 
   recordBrowserEvent(activity: BrowserPointerActivity): void {
@@ -125,20 +143,43 @@ export class InputCaptureRecorder {
 
     this.normalizedSamples += 1;
     this.pointerTypes.add(sample.deviceType);
-    this.minPressure = Math.min(this.minPressure, sample.pressure);
-    this.maxPressure = Math.max(this.maxPressure, sample.pressure);
-    this.minTiltX = Math.min(this.minTiltX, sample.tiltX);
-    this.maxTiltX = Math.max(this.maxTiltX, sample.tiltX);
-    this.minTiltY = Math.min(this.minTiltY, sample.tiltY);
-    this.maxTiltY = Math.max(this.maxTiltY, sample.tiltY);
-    this.eraserObserved ||= sample.isEraser;
 
-    if (sample.twist !== null) {
-      if (this.firstTwist === null) {
-        this.firstTwist = sample.twist;
-      } else if (sample.twist !== this.firstTwist) {
-        this.twistChanged = true;
+    if (sample.isContact) {
+      this.contactSamples += 1;
+      this.minPressure = Math.min(this.minPressure, sample.pressure);
+      this.maxPressure = Math.max(this.maxPressure, sample.pressure);
+      this.minTiltX = Math.min(this.minTiltX, sample.tiltX);
+      this.maxTiltX = Math.max(this.maxTiltX, sample.tiltX);
+      this.minTiltY = Math.min(this.minTiltY, sample.tiltY);
+      this.maxTiltY = Math.max(this.maxTiltY, sample.tiltY);
+      this.eraserObserved ||= sample.isEraser;
+
+      if (sample.twist !== null) {
+        if (this.firstTwist === null) {
+          this.firstTwist = sample.twist;
+        } else if (sample.twist !== this.firstTwist) {
+          this.twistChanged = true;
+        }
       }
+      const previous = this.previousContactByPointer.get(sample.pointerId);
+      if (previous !== undefined) {
+        const timeGap = Math.max(0, sample.timestamp - previous.timestamp);
+        const spatialGap = Math.hypot(sample.x - previous.x, sample.y - previous.y);
+        this.maximumTimeGapMs =
+          this.maximumTimeGapMs === null ? timeGap : Math.max(this.maximumTimeGapMs, timeGap);
+        this.maximumSpatialGapPx =
+          this.maximumSpatialGapPx === null
+            ? spatialGap
+            : Math.max(this.maximumSpatialGapPx, spatialGap);
+      }
+
+      this.previousContactByPointer.set(sample.pointerId, {
+        x: sample.x,
+        y: sample.y,
+        timestamp: sample.timestamp,
+      });
+    } else {
+      this.previousContactByPointer.delete(sample.pointerId);
     }
   }
 
@@ -149,7 +190,10 @@ export class InputCaptureRecorder {
 
     this.active = false;
     const durationMs = Math.max(0, now - this.startedAt);
-    const hasSamples = this.normalizedSamples > 0;
+    const hasContactSamples = this.contactSamples > 0;
+    const pressureRange = hasContactSamples
+      ? Object.freeze([this.minPressure, this.maxPressure] as const)
+      : null;
 
     return Object.freeze({
       durationMs,
@@ -159,13 +203,17 @@ export class InputCaptureRecorder {
       coalescedSamples: this.coalescedSamples,
       averageSampleRate:
         durationMs > 0 ? (this.normalizedSamples * 1000) / durationMs : 0,
-      pressureRange: hasSamples
-        ? Object.freeze([this.minPressure, this.maxPressure] as const)
-        : null,
-      tiltXRange: hasSamples
+      averageCoalescedSampleRate:
+        durationMs > 0 ? (this.coalescedSamples * 1000) / durationMs : 0,
+      maximumTimeGapMs: this.maximumTimeGapMs,
+      maximumSpatialGapPx: this.maximumSpatialGapPx,
+      pressureRange,
+      pressureVariation:
+        pressureRange === null ? null : pressureRange[1] - pressureRange[0],
+      tiltXRange: hasContactSamples
         ? Object.freeze([this.minTiltX, this.maxTiltX] as const)
         : null,
-      tiltYRange: hasSamples
+      tiltYRange: hasContactSamples
         ? Object.freeze([this.minTiltY, this.maxTiltY] as const)
         : null,
       twistChanged: this.twistChanged,

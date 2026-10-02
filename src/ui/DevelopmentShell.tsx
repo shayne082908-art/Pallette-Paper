@@ -17,7 +17,7 @@ export function DevelopmentShell({ config, state, initialization }: DevelopmentS
   return (
     <main className="development-shell">
       <section className="status-card" aria-labelledby="project-title">
-        <p className="eyebrow">Pointer / stylus technology spike</p>
+        <p className="eyebrow">Human stylus validation</p>
         <h1 id="project-title">{config.title}</h1>
         <dl>
           <div><dt>Build</dt><dd>{config.buildId}</dd></div>

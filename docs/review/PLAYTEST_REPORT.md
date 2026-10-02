@@ -1,46 +1,78 @@
-# Build 02 Input Lab Playtest Report
+# Build 02B Guided Stylus Test
 
-Human verification required. Leave unknown results blank until tested on physical hardware.
+Human verification is required. Do not fill physical results until the guided Input Lab test is performed on the target device.
 
-## Test environment
+## How to run
 
-- Device / stylus model:
-- Operating system:
-- Browser and version:
-- Public/local test URL:
-- Test date:
+1. Open the public Input Lab URL when GitHub Pages is enabled.
+2. Press **Run Stylus Test**.
+3. Follow the eight short instructions.
+4. Answer the few simple observation questions shown during the relevant tests.
+5. At the end, optionally enter browser/operating-system labels and notes.
+6. Press **Copy Test Report** and paste the result into the review conversation, or download the local `.txt` report.
 
-## Capability results
+The diagnostic data remains local to the browser unless the user copies or downloads the report.
 
-- Pressure detected: yes / no
-- Tilt detected: yes / no
-- Twist detected: yes / no
-- Eraser detected: yes / no
+## Guided exercises
 
-## Trace exercises
+### 1. Slow line
+Draw one slow line across the box.
 
-- Fast line continuous: yes / no
-- Fast circles continuous: yes / no
-- Sharp zigzags preserve corners: yes / no
-- Tiny handwriting legible: yes / no
-- Obvious lag noticed: yes / no
-- Unexpected browser scrolling/gestures: yes / no
+### 2. Fast line
+Draw quickly across the box several times.
 
-## Observed measurements
+Human questions:
+- Did the line visibly break?
+- Did drawing feel delayed?
 
-- Approx. browser pointer events / second:
-- Approx. normalized samples / second:
-- Approx. coalesced samples / second:
-- Capture duration:
-- Total browser pointer events:
-- Total normalized samples:
-- Total coalesced samples:
-- Pressure range:
-- Tilt X range:
-- Tilt Y range:
-- Twist changed during capture: yes / no
-- Eraser observed during capture: yes / no
+### 3. Fast circles
+Draw several quick circles without lifting the pen.
 
-## Notes
+Human questions:
+- Did the circles visibly break?
+- Did the page scroll or zoom while drawing?
 
-- 
+### 4. Sharp zigzags
+Draw several sharp zigzags.
+
+Human question:
+- Did the sharp corners look like what you drew?
+
+### 5. Pressure
+Start very lightly, gradually press harder, then lighten again.
+
+### 6. Tiny handwriting
+Write a small word or your signature.
+
+Human question:
+- Did the tiny handwriting look like what you wrote?
+
+### 7. Tilt
+Draw while changing the angle of your pen.
+
+### 8. Eraser
+If the stylus has an eraser end, try drawing with it. This exercise may be skipped.
+
+## Generated report fields
+
+The generated report includes only observed or explicitly missing information for:
+
+- optional browser label;
+- optional operating-system label;
+- pointer type observed;
+- pen detection;
+- pressure variation and range;
+- tilt X/Y ranges;
+- twist variation;
+- eraser observation;
+- coalesced-event observation;
+- `pointerrawupdate` availability;
+- average normalized/coalesced sample rates;
+- largest observed time gap;
+- largest observed spatial gap;
+- human observations for fast-line/circle breaks, zigzags, handwriting, lag, and browser gestures;
+- optional notes.
+
+## Physical result status
+
+Not yet tested in this repository documentation.

@@ -2,17 +2,17 @@
 
 ## Build
 
-Build 02 - Pointer / Stylus Input Technology Spike
+Build 02B - Human Stylus Validation
 
 ## Purpose
 
-Determine what quality and quantity of stylus data the browser can expose to Palette & Paper without tying high-frequency processing to React.
+Make the existing Pointer Event Input Lab suitable for short real-device validation without changing it into a drawing engine.
 
 ## Implemented capability
 
-### Browser APIs used
+### Pointer Event capture
 
-The Input Lab uses browser Pointer Events on one dedicated diagnostic surface:
+The Input Lab consumes browser Pointer Events on one dedicated surface:
 
 - `pointerdown`
 - `pointermove`
@@ -21,112 +21,101 @@ The Input Lab uses browser Pointer Events on one dedicated diagnostic surface:
 - `lostpointercapture`
 - `pointerenter`
 - `pointerleave`
-- `setPointerCapture()` / `releasePointerCapture()`
-- `getCoalescedEvents()` when exposed and when a pointer-move event returns coalesced samples
+- pointer capture via `setPointerCapture()`
+- `getCoalescedEvents()` where the browser exposes it
 
-The surface uses scoped `touch-action: none` so browser pan/zoom gestures do not take over the diagnostic area. Browser behavior outside the Input Lab surface is not globally disabled.
+Mouse, pen, and touch use the same normalized path. Optional stylus fields remain nullable when the browser does not expose a finite value.
 
-### Normalized sample data
+### Build 02B coalesced endpoint correction
 
-The normalized path captures:
+Build 02 originally emitted coalesced move samples instead of the dispatched parent move whenever coalesced events existed. That can omit a distinct newest endpoint on browsers where the parent event is later than the returned coalesced history.
 
-- pointer ID
-- pointer/device type
-- X/Y position relative to the test surface
-- event timestamp
-- pressure
-- tilt X/Y
-- twist when represented by the event
-- button and buttons bitmask
-- primary-pointer state
-- contact/down state
-- conservative eraser detection
-- tangential pressure when represented
-- contact width/height when represented
-- altitude angle when represented
-- azimuth angle when represented
-- whether a sample came from the primary event or a coalesced event
+Build 02B now:
 
-Optional numeric values become `null` when they are not exposed as finite values. The implementation does not invent hardware readings.
+1. reads all returned coalesced samples;
+2. adds the dispatched parent pointer-move event as another candidate;
+3. sorts candidates chronologically, retaining source order for equal timestamps;
+4. removes exact endpoint duplicates using pointer ID, timestamp, client X, and client Y;
+5. normalizes and emits the remaining events individually in that order.
 
-### Coalesced events
+A parent event identical to a coalesced endpoint is therefore not emitted twice. A distinct parent endpoint remains present. No custom geometric resampling is introduced.
 
-For `pointermove`, the source calls `getCoalescedEvents()` when the method exists. When the browser returns coalesced events, those samples are normalized and emitted individually in the order supplied by the browser. When no coalesced samples are returned, the parent pointer event is normalized as the fallback.
+### Pressure, tilt, twist, and eraser
 
-The Input Lab reports whether coalesced samples have actually been observed and shows their approximate rolling rate.
+Pressure is clamped only to the Pointer Events 0–1 range. Tilt is clamped to -90–90 degrees. No pressure curve or brush behavior is applied.
+
+Build 02B capture summaries calculate pressure/tilt/twist/eraser observations from contact samples. This prevents a non-contact mouse/pointer-up pressure value from creating a false pressure-variation signal.
+
+Eraser detection remains conservative: pen button 5 or buttons bit 32. `isEraser: false` means the convention was not observed, not that the hardware lacks an eraser.
+
+### Gap measurements
+
+Each short exercise summary can report:
+
+- maximum time gap between sequential contact samples for one pointer;
+- maximum spatial gap between sequential contact samples for one pointer.
+
+A contact lift resets the sequence. These numbers are diagnostic measurements only; Build 02B assigns no good/bad threshold.
 
 ### `pointerrawupdate`
 
-The implementation detects whether the `pointerrawupdate` event API appears to be available on the diagnostic surface and exposes that result in the live panel.
+The Input Lab reports whether the browser exposes the `pointerrawupdate` API. It still does not subscribe to both raw-update and pointer-move streams simultaneously because Build 02B has no device-specific deduplication policy for the parallel streams.
 
-Build 02 does not subscribe to both `pointerrawupdate` and `pointermove` simultaneously. Using both streams without a device-specific deduplication policy could double-count the same physical movement. Real-device testing can determine whether consuming the raw-update stream would provide useful additional data for the target hardware.
+### Guided human test
 
-### Pressure
+One **Run Stylus Test** button starts eight short exercises:
 
-Pressure is passed through directly after clamping to the Pointer Events range of 0 to 1. No custom pressure curve is applied.
+1. slow line;
+2. fast line;
+3. fast circles;
+4. sharp zigzags;
+5. pressure;
+6. tiny handwriting;
+7. tilt;
+8. eraser, which may be skipped.
 
-The raw diagnostic trace maps the normalized pressure directly to a simple line width. That trace is only an inspection aid.
+Each exercise starts with a cleared trace and an independent in-memory aggregate capture. The user may go back, retry the current test, restart, or skip the eraser exercise.
 
-### Tilt
+Only a few human questions are asked for visual breaks, lag, zigzag appearance, handwriting appearance, and browser gesture interference.
 
-Tilt X and tilt Y are passed through after clamping to -90 to 90 degrees. No tilt interpretation or brush behavior is implemented.
+### Capability summary
 
-### Twist
+The result screen uses neutral statuses:
 
-Twist is represented as a number only when the event exposes a finite value to the normalization layer. The recorder reports whether observed twist values changed during a capture.
+- Detected
+- Not observed
+- Unsupported by browser
+- Not tested
 
-A constant zero does not prove that the hardware supports twist; it may also mean the browser/device does not provide a varying twist signal.
+The status panel includes pen, pressure variation, tilt variation, twist variation, eraser, coalesced events, `pointerrawupdate`, browser gesture interference, and noticed input lag.
 
-### Eraser detection
+A "Not observed" result is not translated into a claim that the hardware lacks that feature.
 
-Eraser detection is intentionally conservative. A pen sample is marked as eraser input only when standardized Pointer Event button information indicates button 5 or the corresponding bit 32 in the buttons mask.
+### Report and privacy
 
-`isEraser: false` means "not detected by this convention." It does not prove that a particular stylus/browser combination has no eraser or that every platform reports eraser state identically.
+The result can be copied as compact plain text or downloaded as a small `.txt` file. Browser and operating-system labels are optional user-entered fields rather than inferred device identity.
 
-### Diagnostic rendering
+Test processing stays local in the browser. The application contains no analytics, tracking, telemetry upload, external AI call, or server endpoint for these results.
 
-The trace renderer is imperative and independent of React render cadence. It draws a plain dark line from normalized contact samples and can overlay each captured sample position as a small point.
+## Automated verification scope
 
-It performs no smoothing, stabilization, custom resampling, texture, paint simulation, or brush behavior.
+Automated tests cover normalization, coalesced-parent merging/deduplication/order, deterministic eraser logic, mouse fallback, rolling statistics, contact gap calculations, no-sample sessions, aggregate measurements, capability-state calculation, skipped tests, and report generation.
 
-### Event-rate measurements
-
-Short rolling windows report approximate:
-
-- browser pointer events per second
-- normalized samples per second
-- coalesced samples per second
-- processed samples per second
-
-The recorder summarizes a short session in memory without storing a giant raw log.
-
-## Fallback path
-
-Mouse, pen, and touch all use the same Pointer Events path. If `getCoalescedEvents()` is unavailable or returns no samples, the normal pointer event itself is emitted as one normalized sample.
-
-If optional stylus fields are unavailable, their normalized optional values are `null`. Basic pointer fields continue to work.
+Automated tests cannot establish physical stylus latency, digitizer quality, real pressure fidelity, physical eraser behavior, or whether the raw trace subjectively preserves handwriting.
 
 ## Hardware/browser capability requiring human verification
 
-Automated tests and TypeScript compilation cannot establish physical pen quality. A human with the target device/browser must verify:
+A human with the target device/browser must still verify:
 
-- whether pressure changes smoothly and across a useful range;
-- whether tilt changes are reported by the actual pen;
-- whether twist varies on the actual hardware;
-- whether the stylus eraser end is reported using the implemented convention;
-- actual sample density and coalesced-event contribution;
-- whether fast lines remain continuous;
-- whether circles remain continuous;
-- whether sharp zigzags preserve directional changes;
-- whether tiny handwriting remains legible;
-- whether latency is noticeable;
-- whether pointer capture behaves correctly when leaving the surface;
-- whether browser scrolling/gestures remain suppressed only inside the test surface.
+- actual pen detection;
+- useful pressure variation;
+- tilt/twist behavior;
+- stylus eraser behavior;
+- coalesced-event density;
+- continuity of fast lines and circles;
+- sharp corner preservation;
+- tiny handwriting appearance;
+- noticeable latency;
+- unexpected scrolling/zoom/gesture interference.
 
-## Known platform limitations
-
-Pointer Events intentionally abstract hardware and OS input stacks, so reported values can vary by browser, operating system, digitizer, stylus, and driver.
-
-A browser may expose a field in its API while the attached hardware always reports a default value. API presence alone therefore is not evidence that a physical capability is functioning.
-
-Build 02 establishes instrumentation for real-device measurement. It does not claim universal or successful stylus support without human testing.
+Build 02B provides the evidence-collection workflow. It does not decide whether the browser path is good enough without that evidence.

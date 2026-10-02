@@ -109,7 +109,7 @@ describe('eraser detection', () => {
 });
 
 describe('unpackPointerEventSamples', () => {
-  it('emits coalesced samples individually and preserves their ordering', () => {
+  it('preserves coalesced samples and includes a distinct newer parent endpoint', () => {
     const first = pointerEvent({ clientX: 101, timeStamp: 91, pressure: 0.2 });
     const second = pointerEvent({ clientX: 105, timeStamp: 95, pressure: 0.3 });
     const parent = pointerEvent({
@@ -122,9 +122,68 @@ describe('unpackPointerEventSamples', () => {
 
     expect(batch.usedCoalescedEvents).toBe(true);
     expect(batch.coalescedSampleCount).toBe(2);
-    expect(batch.samples.map((sample) => sample.x)).toEqual([1, 5]);
-    expect(batch.samples.map((sample) => sample.timestamp)).toEqual([91, 95]);
-    expect(batch.samples.every((sample) => sample.origin === 'coalesced')).toBe(true);
+    expect(batch.samples.map((sample) => sample.x)).toEqual([1, 5, 10]);
+    expect(batch.samples.map((sample) => sample.timestamp)).toEqual([91, 95, 100]);
+    expect(batch.samples.map((sample) => sample.origin)).toEqual([
+      'coalesced',
+      'coalesced',
+      'primary',
+    ]);
+  });
+
+  it('deduplicates the parent when it matches the final coalesced endpoint', () => {
+    const first = pointerEvent({ clientX: 101, timeStamp: 91 });
+    const final = pointerEvent({ clientX: 110, timeStamp: 100 });
+    const parent = pointerEvent({
+      clientX: 110,
+      timeStamp: 100,
+      getCoalescedEvents: () => [first, final],
+    });
+
+    const batch = unpackPointerEventSamples(parent, { left: 100, top: 50 });
+
+    expect(batch.samples.map((sample) => sample.x)).toEqual([1, 10]);
+    expect(batch.samples.map((sample) => sample.origin)).toEqual([
+      'coalesced',
+      'coalesced',
+    ]);
+    expect(batch.coalescedSampleCount).toBe(2);
+  });
+
+  it('sorts browser-provided samples chronologically with deterministic ties', () => {
+    const later = pointerEvent({ clientX: 106, timeStamp: 96 });
+    const earlier = pointerEvent({ clientX: 102, timeStamp: 92 });
+    const tied = pointerEvent({ clientX: 108, timeStamp: 96 });
+    const parent = pointerEvent({
+      clientX: 111,
+      timeStamp: 101,
+      getCoalescedEvents: () => [later, earlier, tied],
+    });
+
+    const batch = unpackPointerEventSamples(parent, { left: 100, top: 50 });
+
+    expect(batch.samples.map((sample) => [sample.timestamp, sample.x])).toEqual([
+      [92, 2],
+      [96, 6],
+      [96, 8],
+      [101, 11],
+    ]);
+  });
+
+  it('deduplicates repeated coalesced endpoints even when separated in source order', () => {
+    const duplicateA = pointerEvent({ clientX: 102, timeStamp: 92 });
+    const other = pointerEvent({ clientX: 108, timeStamp: 92 });
+    const duplicateB = pointerEvent({ clientX: 102, timeStamp: 92 });
+    const parent = pointerEvent({
+      clientX: 110,
+      timeStamp: 100,
+      getCoalescedEvents: () => [duplicateA, other, duplicateB],
+    });
+
+    const batch = unpackPointerEventSamples(parent, { left: 100, top: 50 });
+
+    expect(batch.samples.map((sample) => sample.x)).toEqual([2, 8, 10]);
+    expect(batch.coalescedSampleCount).toBe(2);
   });
 
   it('falls back to the parent event and forces terminal contact off', () => {
