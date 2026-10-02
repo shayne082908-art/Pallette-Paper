@@ -119,3 +119,23 @@ A human with the target device/browser must still verify:
 - unexpected scrolling/zoom/gesture interference.
 
 Build 02B provides the evidence-collection workflow. It does not decide whether the browser path is good enough without that evidence.
+
+## Build 02B compiled-browser smoke verification
+
+The exact production dist artifact from tested implementation commit `44904b26c6f265e4c5bbd75f5f28ebaf289a6d05` was loaded in Chromium for a mouse-only smoke test.
+
+Verified in that smoke test:
+
+- Input Lab rendered without console or runtime errors.
+- **Run Stylus Test** began the guided sequence.
+- all eight guided steps were traversable;
+- mouse contact produced the diagnostic trace;
+- retry/clear removed the current trace;
+- entering the next exercise started with a clean trace;
+- simple feedback controls were usable;
+- eraser skip completed the sequence;
+- the capability/report screen rendered;
+- **Copy Test Report** produced the generated text;
+- **Download .txt** produced a text file matching the visible report.
+
+The smoke environment did not provide physical stylus hardware, so these checks do not validate physical pen latency, pressure fidelity, tilt, twist, or eraser behavior.
