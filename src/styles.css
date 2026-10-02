@@ -1,0 +1,69 @@
+:root {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  color: #202020;
+  background: #f4f1e8;
+  font-synthesis: none;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+.development-shell {
+  width: min(720px, calc(100% - 32px));
+  margin: 64px auto;
+  display: grid;
+  gap: 16px;
+}
+
+.status-card,
+.debug-panel {
+  border: 1px solid currentColor;
+  padding: 24px;
+  background: color-mix(in srgb, Canvas 92%, transparent);
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+h1,
+h2 {
+  margin-top: 0;
+}
+
+h1 {
+  margin-bottom: 24px;
+}
+
+h2 {
+  font-size: 1rem;
+}
+
+dl {
+  margin: 0;
+}
+
+dl div {
+  display: grid;
+  grid-template-columns: minmax(140px, 1fr) 2fr;
+  gap: 12px;
+  padding: 6px 0;
+}
+
+dt {
+  font-weight: 700;
+}
+
+dd {
+  margin: 0;
+}
