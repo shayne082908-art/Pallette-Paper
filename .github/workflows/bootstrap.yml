@@ -24,6 +24,7 @@ jobs:
           echo "d2051d3f871370654dcd49128b82dbcc21b846f290026d90933fa3ddb5aeb519  /tmp/palette-paper.tar.gz" | sha256sum -c -
           tar -xzf /tmp/palette-paper.tar.gz -C .
           rm -rf .bootstrap .github/workflows/bootstrap.yml
+          rm -f .github/workflows/ci.yml
       - name: Install dependencies
         run: npm install
       - name: Run tests
