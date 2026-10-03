@@ -1,6 +1,5 @@
 import type {
   BrushSample,
-  ProcessingMode,
   RecordedStroke,
   StrokeSample,
   StrokeSettings,
