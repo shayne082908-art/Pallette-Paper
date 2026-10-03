@@ -33,7 +33,7 @@ jobs:
         run: npm run build
         env:
           PAGES_BASE_PATH: /Pallette-Paper/
-          VITE_BUILD_ID: build-03-${{ github.sha }}
+          VITE_BUILD_ID: build-04-${{ github.sha }}
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload Pages artifact

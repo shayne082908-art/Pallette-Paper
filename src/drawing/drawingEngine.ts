@@ -58,6 +58,7 @@ export interface DrawingEngineSnapshot {
   readonly zoom: number;
   readonly canUndo: boolean;
   readonly canRedo: boolean;
+  readonly hasDrawingInput: boolean;
   readonly diagnostics: DrawingDiagnosticsSnapshot;
 }
 
@@ -140,6 +141,9 @@ export class DrawingEngine {
       zoom: this.view.zoom,
       canUndo: this.history.canUndo(),
       canRedo: this.history.canRedo(),
+      hasDrawingInput: this.history.strokes().some(
+        (stroke) => stroke.settings.tool === 'pencil' && stroke.brushSamples.length > 0,
+      ),
       diagnostics: this.diagnostics.snapshot(now),
     });
   }
