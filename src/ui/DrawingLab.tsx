@@ -20,6 +20,7 @@ const EMPTY_SNAPSHOT: DrawingEngineSnapshot = {
   zoom: 1,
   canUndo: false,
   canRedo: false,
+  hasDrawingInput: false,
   diagnostics: {
     inputSamplesPerSecond: 0,
     processedSamplesPerSecond: 0,
