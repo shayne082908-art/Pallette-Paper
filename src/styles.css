@@ -17,6 +17,7 @@ body {
 
 button,
 input,
+select,
 textarea {
   font: inherit;
 }
@@ -353,5 +354,220 @@ dd {
 
   .notes-field {
     grid-column: auto;
+  }
+}
+
+
+.workspace-tabs {
+  display: inline-flex;
+  width: fit-content;
+  gap: 8px;
+  padding: 6px;
+  border: 1px solid #b8b5ac;
+  background: #e9e6dd;
+}
+
+.active-workspace,
+.active-tool {
+  background: #252525;
+  color: #fff;
+}
+
+.drawing-lab {
+  display: grid;
+  gap: 14px;
+}
+
+.drawing-header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.drawing-copy {
+  max-width: 760px;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.drawing-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: end;
+  gap: 8px;
+}
+
+.drawing-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: end;
+  padding: 12px;
+  border: 1px solid #b8b5ac;
+  background: #fffef9;
+}
+
+.tool-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.compact-control,
+.brush-size-control {
+  display: grid;
+  gap: 4px;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.compact-control select {
+  min-width: 116px;
+  padding: 7px 8px;
+  border: 1px solid #918e86;
+  background: #fff;
+}
+
+.brush-size-control {
+  grid-template-columns: auto minmax(110px, 180px) auto;
+  align-items: center;
+  column-gap: 8px;
+}
+
+.brush-size-control > :first-child {
+  grid-column: 1 / -1;
+}
+
+.zoom-readout {
+  min-width: 54px;
+  text-align: center;
+}
+
+.drawing-viewport {
+  position: relative;
+  height: min(72vh, 820px);
+  min-height: 520px;
+  overflow: hidden;
+  border: 1px solid #6f6d67;
+  background:
+    linear-gradient(45deg, #d7d4cb 25%, transparent 25%),
+    linear-gradient(-45deg, #d7d4cb 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #d7d4cb 75%),
+    linear-gradient(-45deg, transparent 75%, #d7d4cb 75%),
+    #ddd9cf;
+  background-size: 20px 20px;
+  background-position: 0 0, 0 10px, 10px -10px, -10px 0;
+  touch-action: none;
+  overscroll-behavior: contain;
+  user-select: none;
+}
+
+.drawing-document-canvas {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: block;
+  background: #fff;
+  box-shadow: 0 6px 24px #00000025;
+  cursor: crosshair;
+}
+
+.drawing-toolbar:has(.active-tool:nth-child(3)) + .drawing-test-card + .drawing-viewport .drawing-document-canvas,
+.drawing-toolbar:has(.active-tool:nth-child(3)) + .drawing-viewport .drawing-document-canvas {
+  cursor: grab;
+}
+
+.drawing-test-card,
+.drawing-test-results,
+.drawing-diagnostics {
+  border: 1px solid #353535;
+  padding: 18px;
+  background: #fffef9;
+}
+
+.drawing-test-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 24px;
+}
+
+.drawing-test-instruction {
+  margin: 4px 0;
+  font-size: 1.08rem;
+  font-weight: 700;
+}
+
+.drawing-test-hint {
+  margin: 6px 0 0;
+  max-width: 780px;
+  line-height: 1.45;
+  color: #55524d;
+}
+
+.drawing-question-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 16px 0;
+}
+
+.drawing-question-grid .feedback-question {
+  margin: 0;
+}
+
+.drawing-measurements {
+  margin: 18px 0;
+}
+
+.drawing-notes {
+  display: grid;
+  gap: 6px;
+  font-weight: 700;
+}
+
+.drawing-notes textarea {
+  width: 100%;
+  padding: 9px;
+  border: 1px solid #918e86;
+  background: #fff;
+  font-weight: 400;
+}
+
+.drawing-diagnostics {
+  max-width: 760px;
+}
+
+@media (max-width: 1100px) {
+  .drawing-question-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 800px) {
+  .drawing-header,
+  .drawing-test-card {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .drawing-header-actions {
+    justify-content: start;
+  }
+
+  .drawing-viewport {
+    min-height: 430px;
+    height: 62vh;
+  }
+
+  .drawing-question-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .brush-size-control {
+    grid-template-columns: auto minmax(100px, 1fr) auto;
+    width: 100%;
   }
 }

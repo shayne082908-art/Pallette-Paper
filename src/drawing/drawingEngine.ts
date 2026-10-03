@@ -134,7 +134,7 @@ export class DrawingEngine {
     return Object.freeze({
       interactionMode: this.interactionMode,
       processing: this.processing,
-      stabilization: this.stabilization,
+      stabilization: this.processing === 'raw' ? 'off' : this.stabilization,
       pressureCurve: this.pressureCurve,
       baseSize: this.baseSize,
       zoom: this.view.zoom,

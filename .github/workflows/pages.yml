@@ -1,4 +1,4 @@
-name: Deploy Input Lab to Pages
+name: Deploy Palette & Paper Labs to Pages
 
 on:
   push:
@@ -29,11 +29,11 @@ jobs:
           node-version: 22
       - name: Install dependencies
         run: npm ci
-      - name: Build Input Lab
+      - name: Build labs
         run: npm run build
         env:
           PAGES_BASE_PATH: /Pallette-Paper/
-          VITE_BUILD_ID: build-02b-${{ github.sha }}
+          VITE_BUILD_ID: build-03-${{ github.sha }}
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload Pages artifact
