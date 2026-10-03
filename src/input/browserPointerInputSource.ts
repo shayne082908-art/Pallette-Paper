@@ -28,12 +28,18 @@ export interface BrowserPointerActivity {
   readonly usedCoalescedEvents: boolean;
 }
 
+export interface BrowserPointerBatch extends BrowserPointerActivity {
+  readonly samples: readonly PointerSample[];
+}
+
 type SampleConsumer = (sample: PointerSample) => void;
 type ActivityConsumer = (activity: BrowserPointerActivity) => void;
+type BatchConsumer = (batch: BrowserPointerBatch) => void;
 
 export class BrowserPointerInputSource implements PointerSampleSource {
   private readonly sampleConsumers = new Set<SampleConsumer>();
   private readonly activityConsumers = new Set<ActivityConsumer>();
+  private readonly batchConsumers = new Set<BatchConsumer>();
   private started = false;
 
   readonly capabilities: PointerInputCapabilities;
@@ -55,6 +61,11 @@ export class BrowserPointerInputSource implements PointerSampleSource {
   subscribeActivity(consumer: ActivityConsumer): Unsubscribe {
     this.activityConsumers.add(consumer);
     return () => this.activityConsumers.delete(consumer);
+  }
+
+  subscribeBatch(consumer: BatchConsumer): Unsubscribe {
+    this.batchConsumers.add(consumer);
+    return () => this.batchConsumers.delete(consumer);
   }
 
   start(): void {
@@ -149,6 +160,15 @@ export class BrowserPointerInputSource implements PointerSampleSource {
       coalescedSampleCount: batch.coalescedSampleCount,
       usedCoalescedEvents: batch.usedCoalescedEvents,
     });
+
+    const pointerBatch: BrowserPointerBatch = Object.freeze({
+      ...activity,
+      samples: batch.samples,
+    });
+
+    for (const consumer of this.batchConsumers) {
+      consumer(pointerBatch);
+    }
 
     for (const consumer of this.activityConsumers) {
       consumer(activity);
