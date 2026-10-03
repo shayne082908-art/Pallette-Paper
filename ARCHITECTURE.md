@@ -4,79 +4,138 @@
 
 `src/main.tsx` locates the browser root element and delegates startup to `src/app/bootstrap.tsx`. The bootstrap loads centralized configuration, creates the application-state store and browser-local persistence service, runs initialization, and mounts the React development shell.
 
+## Workspaces
+
+The development shell exposes two separate workspaces:
+
+- **Drawing Lab**: Build 03 finite drawing-feel prototype.
+- **Input Lab**: preserved Build 02/02B pointer/stylus diagnostics and guided stylus validation.
+
+Switching workspaces is ordinary React UI state. The high-frequency pointer and drawing paths remain imperative.
+
 ## Module responsibilities
 
 - `src/config/`: centralized application title, build identifier, persistence schema version, and debug-mode configuration.
 - `src/app/`: bootstrap, broad application state, and initialization orchestration.
-- `src/core/`: small cross-boundary primitives currently limited to the unsubscribe type.
-- `src/input/`: pointer normalization, concrete browser Pointer Event capture, rolling/capture diagnostics, guided validation definitions, capability-state calculation, and report generation.
-- `src/rendering/`: the general imperative rendering contract plus the diagnostic raw-trace renderer used by Input Lab.
-- `src/persistence/`: versioned small-state persistence and the browser `localStorage` driver.
-- `src/ui/`: ordinary React UI, including the Input Lab and guided Build 02B test controls/results.
-- `src/debug/`: development-only application diagnostics.
+- `src/core/`: small cross-boundary primitives.
+- `src/input/`: normalized Pointer Event capture, coalesced-event batching, pointer diagnostics, and Build 02B stylus validation/reporting.
+- `src/drawing/`: Build 03 stroke model, recording, spatial resampling, stabilization, pressure mapping, stroke processing, bounded history, coordinate transforms, drawing diagnostics, feel-test reporting, and the imperative drawing engine.
+- `src/rendering/`: rendering boundaries plus diagnostic and drawing canvas renderers.
+- `src/persistence/`: versioned small-state browser persistence. Build 03 artwork is intentionally not persisted.
+- `src/ui/`: React controls and panels for Drawing Lab and Input Lab.
+- `src/debug/`: small application diagnostics.
 
-No gameplay, brush-engine, document, or artwork-storage module is implemented.
+No gameplay systems are implemented.
 
-## Application state
+## High-frequency separation
 
-`ApplicationStateStore` owns the broad modes `booting`, `ready`, and `error`. These remain application lifecycle modes rather than gameplay states.
+React controls tool settings, workspace selection, test prompts, reports, and diagnostics display. It does not process each pointer sample through component state.
 
-## React and high-frequency systems
+Drawing Lab's high-frequency path is:
 
-React owns controls, instructions, questions, and throttled diagnostic/result display. It does not process one state update per pointer sample.
+browser Pointer Events
+-> `BrowserPointerInputSource`
+-> normalized pointer batch
+-> `DrawingEngine`
+-> `StrokeRecorder`
+-> `StrokeProcessor`
+-> pressure/brush sampling
+-> `DrawingRenderer`.
 
-The high-frequency path remains imperative:
+The engine consumes batches directly and draws imperatively. React reads a throttled engine snapshot for toolbar/history/diagnostic UI.
 
-browser Pointer Events -> `BrowserPointerInputSource` -> normalized `PointerSample` -> `InputRateMeter` / `InputCaptureRecorder` + `DiagnosticTraceRenderer`.
+## Pointer input boundary
 
-The React view copies the latest sample and rolling rates on a throttled animation-frame loop.
+`BrowserPointerInputSource` remains shared with Input Lab. It handles pointer capture and emits normalized batches containing browser-provided coalesced samples plus the distinct dispatched parent endpoint when appropriate.
 
-## Input boundary
+Build 03 converts viewport-relative normalized pointer coordinates into finite document coordinates through the current pan/zoom transform.
 
-`PointerSample` contains pointer ID, local position, timestamp, device type, pressure, tangential pressure, tilt, twist, contact dimensions, altitude/azimuth angles, button state, primary/contact state, conservative eraser state, and sample origin.
+## Stroke model
 
-`BrowserPointerInputSource` handles down/move/up/cancel, pointer capture/loss, and enter/leave. `touch-action: none` remains scoped to the diagnostic surface.
+`StrokeSample` stores pointer ID, document-space X/Y, timestamp, pressure, tilt X/Y, pointer type, contact state, and explicit phase: begin, continue, end, or cancel.
 
-### Coalesced-event batching
+`StrokeRecorder` owns one active stroke at a time and freezes completed stroke records with their settings and terminal status.
 
-For pointer moves, `getCoalescedEvents()` is used when available. Build 02B merges browser-provided coalesced events with the dispatched parent event, sorts them chronologically with stable source ordering for timestamp ties, and removes exact endpoint duplicates using pointer ID + timestamp + client X/Y.
+`CompletedStroke` also retains the brush samples needed for replay. The document does not retain an unbounded raw browser event log.
 
-This preserves a distinct newer parent endpoint instead of replacing it with only older coalesced samples. It is browser-sample preservation only; there is no geometric resampling.
+## Stroke processing
 
-## Input diagnostics
+`StrokeProcessor` has two comparison modes:
 
-`InputRateMeter` maintains short rolling timestamp windows for browser events, normalized samples, coalesced samples, and processed samples.
+- **Raw**: normalized stroke samples are converted directly to brush samples with minimal intervention.
+- **Processed**: samples pass through spatial resampling and the selected lightweight stabilizer before brush conversion.
 
-`InputCaptureRecorder` retains aggregate state for one short capture. It counts the browser/normalized stream, but pressure, tilt, twist, eraser, and sequential gap metrics are derived from contact samples so hover/up defaults do not masquerade as stylus capability.
+The first sample is emitted immediately. Dots and very short strokes therefore do not wait for a movement buffer.
 
-It calculates maximum time and spatial gaps only between sequential contact samples for the same pointer. Contact lifts reset that sequence.
+### Spatial resampling
 
-No raw sample log is permanently stored.
+`SpatialResampler` inserts interpolated samples at controlled spatial spacing. It preserves the first point, final endpoint, and explicit sharp raw direction changes. Output is bounded to prevent runaway sample generation.
 
-## Guided validation
+This stage is separate from browser `getCoalescedEvents()`: coalesced events preserve browser-provided input density, while Build 03 resampling creates drawing-system brush sampling.
 
-`src/input/stylusValidation.ts` defines the eight human exercises, neutral capability states, cross-test aggregate measurements, and the copyable text report.
+### Stabilization
 
-The UI automatically clears the diagnostic trace when an exercise begins, records one in-memory summary per completed exercise, permits retry/previous/restart, and permits the eraser exercise to be skipped.
+`StrokeStabilizer` implements Off, Low, and Medium modes using lightweight position filtering. The first point remains immediate and the actual terminal endpoint is restored when the stroke finishes.
 
-Human visual judgments remain explicit user answers rather than automated quality scores.
+This is intentionally replaceable and non-predictive.
 
-## Rendering boundary
+## Pressure mapping and Pencil Prototype
 
-`RenderingService` remains the general imperative canvas boundary. `DiagnosticTraceRenderer` draws the raw line and optional sample points with direct pressure-to-width mapping.
+`pressure.ts` provides Linear, Soft, and Firm mappings. Pressure affects brush width through a bounded base-size calculation.
 
-There is no smoothing, stabilization, prediction, custom resampling, brush simulation, or paint behavior.
+The only drawing brush is **Pencil Prototype**. It uses a plain dark round stroke with pressure-sensitive width. It is not a graphite simulation and has no texture engine.
 
-## Privacy and persistence
+The eraser uses the same stroke pipeline with `destination-out` compositing and a larger predictable width. A detected stylus eraser can temporarily select erasing for that stroke without changing the toolbar's selected drawing tool.
 
-The guided test keeps results in browser memory only. Report copy uses the browser clipboard when available with an in-document fallback. Report download creates a local text Blob.
+## Rendering
 
-No stylus samples, drawings, hardware information, or reports are sent to an application server. No analytics or tracking are present.
+`DrawingRenderer` owns one 1600x1200 finite document canvas. Its backing dimensions are scaled for device pixel ratio while its document/CSS coordinate size remains stable.
 
-`VersionedPersistence` remains limited to small application state and is not used for stylus-test data.
+Pan and zoom are applied as a CSS transform to the document canvas. Pointer positions are transformed back into document coordinates before recording.
+
+Browser viewport resize does not resize or clear the document backing store unless device pixel ratio itself changes. If DPR changes, the renderer rebuilds from stroke history.
+
+The renderer draws the active stroke incrementally. Undo/redo redraws completed strokes from history. Active drawing does not rebuild the entire document on every sample.
+
+## Undo and redo
+
+`StrokeHistory` stores a bounded sequence of completed strokes plus a redo stack.
+
+- one completed stroke is one undo action;
+- redo restores the most recently undone stroke;
+- committing a new stroke clears the redo branch;
+- the history limit is currently 200 strokes.
+
+## Navigation
+
+The Drawing Lab has an explicit Hand / Pan interaction mode. Wheel input zooms around the pointer position. Toolbar buttons zoom around the viewport center. Reset View fits the finite document inside the viewport.
+
+Canvas rotation and infinite canvas are not implemented.
+
+## Diagnostics and drawing feel test
+
+`DrawingDiagnostics` reports approximate one-second-window input sample rate, processed brush sample rate, frame rate, and active-stroke sample count.
+
+`DrawingMeasurementRecorder` collects in-memory feel-test aggregates: pointer types, input/processed counts and rates, largest sequential contact input gap, and pressure range.
+
+The six-step Drawing Feel Test asks for tiny handwriting, fast circles, sharp zigzags, pressure ramp, slow contour, and a free sketch. Human questions are stored only for the current browser session and produce no automatic score.
+
+## Export and privacy
+
+**Export PNG** creates a white-background PNG containing only the drawing document.
+
+Drawing test reports can be copied or downloaded as plain text. Artwork, pointer samples, reports, and test measurements are not uploaded by the application. There are no analytics or tracking systems.
+
+## Persistence boundary
+
+Existing versioned browser persistence remains limited to small application state. Build 03 deliberately does not save artwork/project files or autosave drawing documents.
 
 ## Dependency direction
 
-Browser entrypoint -> application bootstrap -> configuration/state/persistence -> React shell.
+Browser entrypoint -> application bootstrap -> React shell.
 
-Input and rendering modules do not depend on React. Validation/report logic depends on input-domain types, not UI components. Persistence does not depend on application or UI modules.
+Within Drawing Lab:
+
+input modules -> drawing engine/domain modules -> rendering boundary.
+
+Drawing-domain and rendering code do not depend on React. React consumes public engine controls/snapshots rather than owning stroke data.
