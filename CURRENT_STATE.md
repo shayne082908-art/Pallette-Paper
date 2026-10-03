@@ -1,88 +1,80 @@
 # Current State
 
-Current build: Build 03 - First Real Drawing Canvas
-Playable game: No
+Current build: Build 04 - First Tiny Playable Loop
+Playable game: Yes, one tiny vertical slice
 
 Implemented:
-- Separate Drawing Lab and preserved Input Lab workspaces.
-- Finite 1600 x 1200 white drawing document independent from viewport size and zoom.
-- High-DPI canvas backing-store handling.
-- Imperative browser pointer -> stroke recorder -> stroke processor -> brush sampling -> renderer path outside React's per-sample render cycle.
-- Explicit stroke begin/continue/end/cancel model retaining position, timestamp, pressure, tilt, pointer type, and contact state.
-- Raw versus Processed comparison.
-- Independently testable spatial resampling with first/end point preservation, sharp-direction preservation, gap interpolation, and bounded output.
-- Lightweight Off / Low / Medium stabilization with immediate first mark and terminal endpoint preservation.
-- One pressure-sensitive Pencil Prototype.
-- Raw / Linear, Soft, and Firm pressure curves.
-- Brush-size control.
-- Basic toolbar eraser plus detected stylus-eraser per-stroke activation.
-- Stroke-level bounded undo/redo with redo invalidation after a new stroke.
-- Explicit Hand / Pan mode, wheel zoom, toolbar zoom, and Reset View.
-- Viewport resize preserves artwork; DPR changes rebuild from stroke history.
-- Optional drawing diagnostics for approximate input samples/sec, processed samples/sec, render FPS, active stroke sample count, stabilization, and pressure curve.
-- Six-step Drawing Feel Test with human feedback questions and no automatic quality score.
-- Copyable/downloadable Drawing Test Report.
-- PNG export containing the drawing document only.
-- Local-only drawing/test data; no analytics, telemetry, or project-file persistence.
+- Clear **Play First Slice** entry separate from preserved Drawing Lab and Input Lab.
+- Original browser-native cozy art-supply shop prototype with closed/open presentation, shelves, counter, studio door, soft colors, and light movement.
+- Exactly one customer: Mira.
+- Exactly one commission: **A Little Plant for a Friend**.
+- Short authored Mira dialogue and one acceptance path.
+- Studio transition and one real-art lesson: simplify the subject into big shapes before adding details.
+- Lightweight Marlow studio helper with two concise authored lines.
+- Original potted-plant SVG reference card.
+- Gameplay Studio reuses the actual Build 03 `DrawingEngine`; no gameplay-specific drawing-engine copy.
+- Simplified gameplay drawing toolbar: Pencil, Eraser, Pan, Undo, Redo, brush size, zoom, and Reset View.
+- Build 03 development-only processing/stabilization/diagnostic controls remain hidden from gameplay.
+- Untouched canvas submission guard based only on presence of a completed pencil stroke.
+- **I'm Done** confirmation with **Keep Drawing** and **Submit**.
+- Exact submitted artwork captured from the real drawing canvas as a PNG Blob and retained in memory.
+- Return-to-shop handoff and warm non-scored Mira reaction.
+- Exact submitted artwork visibly reused inside Mira's notebook.
+- **First Commission Complete**, **Mira will remember this**, and **First Morning Complete** ending.
+- Submitted-artwork thumbnail on the end card.
+- Play Again and Return to Development Menu.
+- Local-only first-game feedback questionnaire with no automatic score.
+- Copyable and downloadable Build 04 playtest report.
 
 Intentionally not implemented:
-- Multiple artistic brushes or realistic graphite.
-- Charcoal, marker, watercolor, gouache, oil, wet media, smudge, color picker, or palette systems.
-- Layers, selections, transform tools, canvas rotation, infinite canvas, or reference images.
-- Artwork project-file saving or autosave.
-- Gameplay systems, shops, rooms, NPCs, customers, dialogue, commissions, lessons, tutors, progression, economy, game audio, final art direction, or final UI styling.
+- Second/random customers or generic customer generation.
+- Inventory, purchasing, suppliers, stocking, register gameplay, economy, money, reputation, relationship meters, XP, or loot.
+- Multiple commissions, deadlines, calendar, day/night simulation, or free room navigation.
+- Staff, multiple lessons, skill/mastery systems, AI tutor, or external AI API.
+- Additional brushes, realistic brush simulation, layers, project saves, or autosave.
+- Seasonal events, dialogue generation, final visual assets, or a full audio system.
 
 Automated tests:
-- PASS on tested implementation commit `f29355e4360db4b9e9bb546b998d79cc702ecc0c`.
-- 48 tests across 16 test files.
-- Drawing coverage includes stroke lifecycle, dots/short strokes, spatial resampling, endpoints, chronological behavior inherited from the input path, sharp turns, pressure mapping, brush size, undo/redo, redo invalidation, pan/zoom transforms, DPR backing calculations, raw/processed processing, and report generation.
+- PASS on tested implementation commit `6a631c9e7d9972e0dd7691b865db2051089fad90`.
+- Existing Build 01–03 tests plus Build 04 state/report tests pass.
+- Build 04 coverage includes state progression, accepted-commission Studio path, null submission blocking, submitted-artwork retention, completion, restart reset, out-of-order event rejection, completion timing, and playtest-report generation.
 
 Production build:
-- PASS on tested implementation commit `f29355e4360db4b9e9bb546b998d79cc702ecc0c`.
+- PASS on tested implementation commit `6a631c9e7d9972e0dd7691b865db2051089fad90`.
 - Strict TypeScript compilation and Vite production build succeed.
 
 CI:
-- PASS on tested implementation commit `f29355e4360db4b9e9bb546b998d79cc702ecc0c`.
+- PASS on tested implementation commit `6a631c9e7d9972e0dd7691b865db2051089fad90`.
 
-Manual browser smoke test:
-- PASS against the exact CI production artifact from `f29355e4360db4b9e9bb546b998d79cc702ecc0c` using Chromium and mouse input.
-- Drawing Lab opened and mouse drawing worked.
-- Clear, Raw/Processed, stabilization, pressure curve, brush size, eraser, undo, redo, pan, zoom, and reset view worked.
-- Browser viewport resize preserved existing artwork.
-- Drawing Feel Test completed all six exercises.
-- Report generation, clipboard copy, `.txt` download, and PNG export worked.
-- No console/runtime errors were observed.
+Complete mouse playthrough:
+- PASS on the public GitHub Pages deployment.
+- Start slice, Open Shop, Mira arrival/dialogue, commission acceptance, Studio lesson/reference, mouse drawing, undo/redo, submission confirmation, artwork retention, return to Mira, reaction, notebook reveal, completion card, feedback report copy/download, and Play Again were exercised.
+- Untouched-canvas submission was blocked before drawing.
+- No obvious console/runtime or broken-control failure was observed in the browser playthrough.
 
-GitHub Pages deployment:
-- FAIL at the Pages setup step, after the repository-relative production build succeeds.
-- GitHub reports that Pages is not enabled/configured to build using GitHub Actions for this repository.
-- Existing deployment workflow remains ready.
+Pages deployment:
+- PASS on tested implementation commit `6a631c9e7d9972e0dd7691b865db2051089fad90`.
 
-Public Drawing Lab URL:
-- Not available until GitHub Pages is enabled.
+Public gameplay URL:
+- https://shayne082908-art.github.io/Pallette-Paper/
 
-Blocker requiring user action:
-- Open repository Settings -> Pages -> Build and deployment and set Source to GitHub Actions.
-- Then re-run the existing Deploy Palette & Paper Labs to Pages workflow or make the next push.
-
-Physical stylus drawing test:
-- NOT YET TESTED.
-- No physical stylus hardware was available during automated/manual builder verification.
-- Pressure feel, actual pen immediacy, tilt-era hardware behavior, stylus eraser feel, and subjective willingness to sketch still require real-device human testing.
+Physical stylus gameplay playtest:
+- NOT YET TESTED by the builder.
+- The user still needs to play the Build 04 slice on their actual stylus hardware to evaluate drawing feel inside gameplay.
 
 Known limitations:
-- Pencil Prototype is intentionally simple and untextured.
-- Stabilization is a lightweight filter, not predictive input.
-- No automatic drawing-feel threshold or score is produced.
-- Artwork/history/report state is in-memory only.
-- History is bounded to 200 completed strokes.
-- Canvas rotation and infinite canvas are absent.
-- Public testing remains blocked until repository Pages is enabled.
+- Temporary browser-native prototype presentation, not final game art.
+- One authored path only; no rejection, negotiation, pricing, economy, or generic content systems.
+- No visual recognition or artistic quality scoring.
+- Artwork and gameplay state are session-memory only.
+- The non-empty submission guard only proves a pencil stroke was made.
+- Human pacing and subjective enjoyment remain unverified by automated tests.
+- Physical stylus gameplay behavior remains unverified by the builder.
 
 Tested implementation commit:
-- `f29355e4360db4b9e9bb546b998d79cc702ecc0c`
+- `6a631c9e7d9972e0dd7691b865db2051089fad90`
 
 Final repository HEAD:
-- Reported in the completion response because the commit containing this file cannot contain its own SHA.
+- Reported in the completion response because the documentation commit cannot contain its own SHA.
 
 Human review required: Yes
